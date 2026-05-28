@@ -15,9 +15,9 @@ const CHART = {
   width: 800,
   height: 420,
   marginLeft: 70,
-  marginRight: 20,
-  marginTop: 20,
-  marginBottom: 50,
+  marginRight: 40,
+  marginTop: 30,
+  marginBottom: 70,
   minDb: -10,
   maxDb: 50,
   minW: 0,
@@ -61,6 +61,11 @@ export default function App() {
   const [db3, setDb3] = useState(24);
   const [rh3, setRh3] = useState(40);
   const [mda3, setMda3] = useState(5000);
+
+  // =========================
+  // Report and ordering
+  // =========================
+  const [showReport, setShowReport] = useState(false);
 
   // =========================================================
   // Psychrometric helper functions
@@ -401,11 +406,8 @@ export default function App() {
                   x2={x}
                   y2={yScale(CHART.maxW)}
                   stroke="#e5e7eb"
-                  strokeWidth="1"
+                  strokeWidth="2"
                 />
-                <text x={x} y={CHART.height - 25} textAnchor="middle" fontSize="11" fill="#374151">
-                  {db}
-                </text>
               </g>
             );
           })}
@@ -422,23 +424,20 @@ export default function App() {
                   x2={xScale(CHART.maxDb)}
                   y2={y}
                   stroke="#e5e7eb"
-                  strokeWidth="1"
+                  strokeWidth="2"
                 />
-                <text x={45} y={y + 4} textAnchor="middle" fontSize="11" fill="#374151">
-                  {W.toFixed(3)}
-                </text>
               </g>
             );
           })}
 
-          {/* Axes */}
+          {/* Axes with labels */}
           <line
             x1={xScale(CHART.minDb)}
             y1={yScale(CHART.minW)}
             x2={xScale(CHART.maxDb)}
             y2={yScale(CHART.minW)}
             stroke="#111827"
-            strokeWidth="1.5"
+            strokeWidth="2.5"
           />
           <line
             x1={xScale(CHART.minDb)}
@@ -446,26 +445,49 @@ export default function App() {
             x2={xScale(CHART.minDb)}
             y2={yScale(CHART.maxW)}
             stroke="#111827"
-            strokeWidth="1.5"
+            strokeWidth="2.5"
           />
 
-          {/* Saturation curve */}
-          <path d={saturationPath} fill="none" stroke="#2563eb" strokeWidth="2.5" />
-
-          {/* RH curves */}
-          {rhCurves.map((curve) => (
-            <g key={curve.rh}>
-              <path d={curve.path} fill="none" stroke="#9ca3af" strokeWidth="1" strokeDasharray="4 4" />
-              <text
-                x={xScale(44)}
-                y={yScale(Math.min(humidityRatioFromDbRh(44, curve.rh, P), CHART.maxW)) - 2}
-                fontSize="10"
-                fill="#6b7280"
-              >
-                {curve.rh}%
+          {/* X-axis labels (Dry Bulb) */}
+          {Array.from({ length: 13 }).map((_, i) => {
+            const db = CHART.minDb + i * 5;
+            const x = xScale(db);
+            return (
+              <text key={`xlbl-${db}`} x={x} y={CHART.height - 5} textAnchor="middle" fontSize="11" fill="#374151">
+                {db}
               </text>
-            </g>
-          ))}
+            );
+          })}
+
+          {/* Y-axis labels (Humidity Ratio) */}
+          {Array.from({ length: 7 }).map((_, i) => {
+            const W = i * 0.005;
+            const y = yScale(W);
+            return (
+              <text key={`ylbl-${W}`} x={50} y={y + 4} textAnchor="middle" fontSize="11" fill="#374151">
+                {W.toFixed(3)}
+              </text>
+            );
+          })}
+
+          {/* Saturation curve */}
+          <path d={saturationPath} fill="none" stroke="#2563eb" strokeWidth="3" />
+
+          {/* RH curves with labels */}
+          {rhCurves.map((curve) => {
+            const db44 = 44;
+            const W44 = Math.min(humidityRatioFromDbRh(db44, curve.rh, P), CHART.maxW);
+            const x44 = xScale(db44);
+            const y44 = yScale(W44);
+            return (
+              <g key={curve.rh}>
+                <path d={curve.path} fill="none" stroke="#9ca3af" strokeWidth="2" strokeDasharray="5 5" />
+                <text x={x44} y={y44 - 8} fontSize="11" fontWeight="600" fill="#6b7280">
+                  {curve.rh}%
+                </text>
+              </g>
+            );
+          })}
 
           {/* Process lines */}
           {processLines.map((line) => (
@@ -476,7 +498,7 @@ export default function App() {
               x2={line.x2}
               y2={line.y2}
               stroke={line.color}
-              strokeWidth="2.5"
+              strokeWidth="3"
               strokeDasharray={line.dash}
             />
           ))}
@@ -487,8 +509,8 @@ export default function App() {
             const y = yScale(item.point.W);
             return (
               <g key={item.id}>
-                <circle cx={x} cy={y} r={5} fill={item.color} />
-                <text x={x + 8} y={y - 8} fontSize="12" fontWeight="bold" fill={item.color}>
+                <circle cx={x} cy={y} r={6} fill={item.color} stroke="white" strokeWidth="2" />
+                <text x={x + 10} y={y - 10} fontSize="13" fontWeight="bold" fill={item.color}>
                   {item.label}
                 </text>
               </g>
@@ -498,23 +520,25 @@ export default function App() {
           {/* Axis labels */}
           <text
             x={(xScale(CHART.minDb) + xScale(CHART.maxDb)) / 2}
-            y={CHART.height - 5}
+            y={CHART.height - 38}
             textAnchor="middle"
             fontSize="13"
             fontWeight="bold"
+            fill="#111827"
           >
             Dry Bulb Temperature (°C)
           </text>
 
           <text
-            x={18}
+            x={15}
             y={(yScale(CHART.minW) + yScale(CHART.maxW)) / 2}
             textAnchor="middle"
             fontSize="13"
             fontWeight="bold"
-            transform={`rotate(-90, 18, ${(yScale(CHART.minW) + yScale(CHART.maxW)) / 2})`}
+            fill="#111827"
+            transform={`rotate(-90, 15, ${(yScale(CHART.minW) + yScale(CHART.maxW)) / 2})`}
           >
-            Humidity Ratio (kg/kg dry air)
+            Humidity Ratio (kg/kg)
           </text>
         </svg>
       </div>
@@ -556,6 +580,31 @@ export default function App() {
 
       <hr />
 
+      <h3>5) Generate Report</h3>
+      <button onClick={() => setShowReport(true)} style={{ padding: "10px 20px", fontSize: "16px", cursor: "pointer" }}>
+        Generate Report
+      </button>
+
+      {showReport && (
+        <ReportModal
+          p1={p1}
+          p2={result.p2}
+          p3={result.p3}
+          mode={mode}
+          label={result.label}
+          totalKW={result.totalKW}
+          sensibleKW={result.sensibleKW}
+          latentKW={result.latentKW}
+          moistureKgHr={result.moistureKgHr}
+          mda1={mda1}
+          mda3={mda3}
+          alt={alt}
+          onClose={() => setShowReport(false)}
+        />
+      )}
+
+      <hr />
+
       <h3>Engineering Notes</h3>
       <ul>
         <li>
@@ -571,6 +620,346 @@ export default function App() {
           This version is ideal for moving toward a real HandsDown-like workflow.
         </li>
       </ul>
+    </div>
+  );
+}
+
+interface ReportModalProps {
+  p1: Point;
+  p2: Point;
+  p3?: Point;
+  mode: "sensible" | "condition" | "mixing";
+  label: string;
+  totalKW: number;
+  sensibleKW: number;
+  latentKW: number;
+  moistureKgHr: number;
+  mda1: number;
+  mda3: number;
+  alt: number;
+  onClose: () => void;
+}
+
+function ReportModal({
+  p1,
+  p2,
+  p3,
+  mode,
+  label,
+  totalKW,
+  sensibleKW,
+  latentKW,
+  moistureKgHr,
+  mda1,
+  mda3,
+  alt,
+  onClose,
+}: ReportModalProps) {
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    const element = document.getElementById("report-content");
+    if (!element) return;
+    const html = element.innerHTML;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "psychrometric-report.html";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const P_mmHg = p1.P * 7.50062;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "rgba(0,0,0,0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "white",
+          borderRadius: 8,
+          padding: 30,
+          maxWidth: 900,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div id="report-content" style={{ fontSize: 14, lineHeight: 1.6, color: "#333" }}>
+          <div style={{ textAlign: "center", marginBottom: 30 }}>
+            <h1 style={{ fontSize: 24, margin: "0 0 10px 0" }}>PSYCHROMETRIC ANALYSIS REPORT</h1>
+            <p style={{ margin: 5 }}>STATE POINT & PROCESS REPORT</p>
+            <p style={{ margin: 5, fontSize: 12 }}>Generated on {new Date().toLocaleDateString()}</p>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ borderBottom: "2px solid #333", paddingBottom: 10 }}>Project Information</h3>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8 }}>
+                    <strong>Altitude:</strong>
+                  </td>
+                  <td style={{ padding: 8 }}>{alt.toFixed(3)} Meters</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8 }}>
+                    <strong>Atmospheric Pressure:</strong>
+                  </td>
+                  <td style={{ padding: 8 }}>
+                    {p1.P.toFixed(3)} kPa / {P_mmHg.toFixed(2)} mm Hg
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8 }}>
+                    <strong>Process Type:</strong>
+                  </td>
+                  <td style={{ padding: 8 }}>{label}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ borderBottom: "2px solid #333", paddingBottom: 10 }}>State Point 1 Data</h3>
+            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
+              <thead>
+                <tr style={{ background: "#f5f5f5" }}>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Parameter</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Value</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Unit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Dry Bulb Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p1.db.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Relative Humidity</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p1.rh.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>%</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Wet Bulb Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p1.wb.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Dew Point Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p1.dp.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Humidity Ratio</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{(p1.W * 1000).toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>g/kg</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Enthalpy</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p1.h.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kJ/kg</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Air Flow Rate</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{mda1.toFixed(0)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kg/h</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {p3 && mode === "mixing" && (
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ borderBottom: "2px solid #333", paddingBottom: 10 }}>State Point 3 Data (Mixing Stream)</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
+                <thead>
+                  <tr style={{ background: "#f5f5f5" }}>
+                    <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Parameter</th>
+                    <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Value</th>
+                    <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>Dry Bulb Temperature</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>{p3.db.toFixed(2)}</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>Relative Humidity</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>{p3.rh.toFixed(2)}</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>%</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>Humidity Ratio</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>{(p3.W * 1000).toFixed(2)}</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>g/kg</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>Enthalpy</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>{p3.h.toFixed(2)}</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>kJ/kg</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>Air Flow Rate</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>{mda3.toFixed(0)}</td>
+                    <td style={{ padding: 8, border: "1px solid #ddd" }}>kg/h</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ borderBottom: "2px solid #333", paddingBottom: 10 }}>State Point 2 Data (Result)</h3>
+            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
+              <thead>
+                <tr style={{ background: "#f5f5f5" }}>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Parameter</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Value</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Unit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Dry Bulb Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p2.db.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Relative Humidity</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p2.rh.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>%</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Wet Bulb Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p2.wb.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Dew Point Temperature</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p2.dp.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>°C</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Humidity Ratio</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{(p2.W * 1000).toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>g/kg</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Enthalpy</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{p2.h.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kJ/kg</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ borderBottom: "2px solid #333", paddingBottom: 10 }}>Process Energy Analysis</h3>
+            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
+              <thead>
+                <tr style={{ background: "#f5f5f5" }}>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Parameter</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Value</th>
+                  <th style={{ padding: 8, textAlign: "left", border: "1px solid #ddd" }}>Unit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Total Energy</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{totalKW.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kW</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Sensible Energy</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{sensibleKW.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kW</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Latent Energy</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{latentKW.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kW</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Sensible Heat Ratio</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>
+                    {totalKW === 0 ? "N/A" : (sensibleKW / totalKW).toFixed(3)}
+                  </td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>-</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>Moisture Change</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>{moistureKgHr.toFixed(2)}</td>
+                  <td style={{ padding: 8, border: "1px solid #ddd" }}>kg/h</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20, display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            onClick={handlePrint}
+            style={{
+              padding: "10px 20px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Print
+          </button>
+          <button
+            onClick={handleDownload}
+            style={{
+              padding: "10px 20px",
+              background: "#059669",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Download
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "10px 20px",
+              background: "#6b7280",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
